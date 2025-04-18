@@ -1,0 +1,1842 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- Modern Color Palette (Dark Theme)
+local colors = {
+    Background = Color3.fromRGB(30, 30, 30),
+    PanelBackground = Color3.fromRGB(45, 45, 45),
+    InputBackground = Color3.fromRGB(60, 60, 60),
+    PrimaryAccent = Color3.fromRGB(50, 200, 255),
+    PrimaryAccentHover = Color3.fromRGB(50, 200, 255),
+    SecondaryAccent = Color3.fromRGB(80, 80, 80),
+    TextPrimary = Color3.fromRGB(240, 240, 240),
+    TextSecondary = Color3.fromRGB(180, 180, 180),
+    TextDisabled = Color3.fromRGB(120, 120, 120),
+    Delete = Color3.fromRGB(220, 50, 50),
+    Highlight = Color3.fromRGB(255, 255, 255)
+}
+
+-- Consistent Fonts
+local fonts = {
+    Title = Enum.Font.SourceSansSemibold,
+    Body = Enum.Font.SourceSans,
+    Button = Enum.Font.SourceSansSemibold,
+    Input = Enum.Font.SourceSans,
+    Label = Enum.Font.SourceSans,
+}
+
+-- Helper Function for UIStroke (Used only for editor UI)
+local function addStroke(parent, thickness, color)
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = thickness
+    stroke.Color = color
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "GUIEditorV2_Fixed"
+ScreenGui.ResetOnSpawn = false
+
+-- Toolbox Frame (Left Side)
+local Toolbox = Instance.new("Frame")
+Toolbox.Size = UDim2.new(0.18, 0, 1, 0)
+Toolbox.Position = UDim2.new(0, 0, 0, 0)
+Toolbox.BackgroundColor3 = colors.PanelBackground
+Toolbox.BorderSizePixel = 0
+Toolbox.Visible = true
+Toolbox.Parent = ScreenGui
+addStroke(Toolbox, 1, colors.SecondaryAccent)
+
+local ToolboxUICorner = Instance.new("UICorner")
+ToolboxUICorner.CornerRadius = UDim.new(0, 8)
+ToolboxUICorner.Parent = Toolbox
+
+local ToolboxLayout = Instance.new("UIListLayout")
+ToolboxLayout.Padding = UDim.new(0, 10)
+ToolboxLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ToolboxLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ToolboxLayout.Parent = Toolbox
+
+local ToolboxTitle = Instance.new("TextLabel")
+ToolboxTitle.Size = UDim2.new(1, -20, 0, 30)
+ToolboxTitle.Text = "Toolbox"
+ToolboxTitle.TextColor3 = colors.TextPrimary
+ToolboxTitle.TextSize = 18
+ToolboxTitle.Font = fonts.Title
+ToolboxTitle.BackgroundTransparency = 1
+ToolboxTitle.LayoutOrder = 0
+ToolboxTitle.Parent = Toolbox
+
+-- Helper for creating Toolbox buttons
+local function createToolboxButton(text, order)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 35)
+    button.Text = text
+    button.TextSize = 17
+    button.Font = fonts.Button
+    button.BackgroundColor3 = colors.PrimaryAccent
+    
+
+    -- تدرج لوني احترافي للأزرار
+    local gradientTween = TweenService:Create(button, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+    })
+    gradientTween:Play()
+
+    button.TextColor3 = colors.TextPrimary
+    button.BorderSizePixel = 0
+    button.LayoutOrder = order
+    button.Parent = Toolbox
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+    addStroke(button, 1, Color3.fromRGB(50, 200, 255))
+    button.AutoButtonColor = true
+
+    return button
+end
+
+local ButtonsButton = createToolboxButton("Add Element", 1)
+local BindButtonToFrame = createToolboxButton("Bind Button", 3)
+local CopyButton = createToolboxButton("Copy Element", 4)
+local CopyScript = createToolboxButton("Copy Script", 5)
+
+-- Properties Frame (Right Side)
+local Properties = Instance.new("ScrollingFrame")
+Properties.Size = UDim2.new(0.25, 0, 1, 0)
+Properties.AnchorPoint = Vector2.new(1, 0)
+Properties.Position = UDim2.new(1, 0, 0, 0)
+Properties.BackgroundColor3 = colors.PanelBackground
+Properties.BorderSizePixel = 0
+Properties.Visible = false
+Properties.ScrollBarThickness = 6
+Properties.ScrollBarImageColor3 = colors.SecondaryAccent
+Properties.ScrollingDirection = Enum.ScrollingDirection.Y
+Properties.CanvasSize = UDim2.new(0, 0, 2, 0)
+Properties.Parent = ScreenGui
+addStroke(Properties, 1, colors.SecondaryAccent)
+
+local PropertiesUICorner = Instance.new("UICorner")
+PropertiesUICorner.CornerRadius = UDim.new(0, 8)
+PropertiesUICorner.Parent = Properties
+
+local PropertiesContainer = Instance.new("Frame")
+PropertiesContainer.Size = UDim2.new(1, 0, 0, 0)
+PropertiesContainer.AutomaticSize = Enum.AutomaticSize.Y
+PropertiesContainer.BackgroundTransparency = 1
+PropertiesContainer.Parent = Properties
+
+local PropertiesLayout = Instance.new("UIListLayout")
+PropertiesLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PropertiesLayout.Padding = UDim.new(0, 8)
+PropertiesLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+PropertiesLayout.Parent = PropertiesContainer
+
+local PropertiesPadding = Instance.new("UIPadding")
+PropertiesPadding.PaddingTop = UDim.new(0, 10)
+PropertiesPadding.PaddingBottom = UDim.new(0, 10)
+PropertiesPadding.PaddingLeft = UDim.new(0, 10)
+PropertiesPadding.PaddingRight = UDim.new(0, 10)
+PropertiesPadding.Parent = PropertiesContainer
+
+-- Helper functions for creating property fields
+local function createPropertyLabel(text, order)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 18)
+    label.Text = text
+    label.TextColor3 = colors.TextSecondary
+    label.BackgroundTransparency = 1
+    label.TextSize = 15
+    label.Font = fonts.Label
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.LayoutOrder = order
+    label.Parent = PropertiesContainer
+    return label
+end
+
+local function createTextBox(placeholder, order)
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, 0, 0, 30)
+    textBox.PlaceholderText = placeholder
+    textBox.Text = ""
+    textBox.BackgroundColor3 = colors.InputBackground
+    textBox.TextColor3 = colors.TextPrimary
+    textBox.PlaceholderColor3 = colors.TextDisabled
+    textBox.BorderSizePixel = 0
+    textBox.TextSize = 14
+    textBox.Font = fonts.Input
+    textBox.LayoutOrder = order
+    textBox.Parent = PropertiesContainer
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = textBox
+    addStroke(textBox, 1, colors.SecondaryAccent)
+
+    return textBox
+end
+
+local function createToggle(text, order)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 30)
+    button.Text = text .. ": Off"
+    button.BackgroundColor3 = colors.SecondaryAccent
+    button.TextColor3 = colors.TextPrimary
+    button.TextSize = 14
+    button.Font = fonts.Button
+    button.BorderSizePixel = 0
+    button.LayoutOrder = order
+    button.Parent = PropertiesContainer
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = button
+    addStroke(button, 1, Color3.fromRGB(50, 200, 255))
+    button.AutoButtonColor = true
+
+    return button
+end
+
+local function createHorizontalPair(labelBase, placeholderX, placeholderY, orderStart)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 30)
+    frame.BackgroundTransparency = 1
+    frame.LayoutOrder = orderStart
+    frame.Parent = PropertiesContainer
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = frame
+
+    local fieldX = createTextBox(placeholderX, 1)
+    fieldX.Size = UDim2.new(0.5, -2.5, 1, 0)
+    fieldX.Parent = frame
+    fieldX.LayoutOrder = 1
+
+    local fieldY = createTextBox(placeholderY, 2)
+    fieldY.Size = UDim2.new(0.5, -2.5, 1, 0)
+    fieldY.Parent = frame
+    fieldY.LayoutOrder = 2
+
+    return fieldX, fieldY
+end
+
+local function createColorFields(labelBase, orderStart)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 30)
+    frame.BackgroundTransparency = 1
+    frame.LayoutOrder = orderStart
+    frame.Parent = PropertiesContainer
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = frame
+
+    local fieldR = createTextBox("R", 1)
+    fieldR.Size = UDim2.new(0.33, -3.33, 1, 0)
+    fieldR.Parent = frame
+    fieldR.LayoutOrder = 1
+
+    local fieldG = createTextBox("G", 2)
+    fieldG.Size = UDim2.new(0.33, -3.33, 1, 0)
+    fieldG.Parent = frame
+    fieldG.LayoutOrder = 2
+
+    local fieldB = createTextBox("B", 3)
+    fieldB.Size = UDim2.new(0.33, -3.33, 1, 0)
+    fieldB.Parent = frame
+    fieldB.LayoutOrder = 3
+
+    return fieldR, fieldG, fieldB
+end
+
+-- Properties Fields
+local NameLabel = createPropertyLabel("Name / Text", 1)
+local NameField = createTextBox("Element Name or Text", 2)
+
+local SizeLabel = createPropertyLabel("Size (Scale)", 3)
+local SizeX, SizeY = createHorizontalPair("Size", "X Scale (0-1)", "Y Scale (0-1)", 4)
+
+local OffsetLabel = createPropertyLabel("Size (Offset)", 5)
+local OffsetX, OffsetY = createHorizontalPair("Offset", "X Offset (px)", "Y Offset (px)", 6)
+
+local ColorLabel = createPropertyLabel("Background Color (RGB 0-255)", 7)
+local ColorR, ColorG, ColorB = createColorFields("BgColor", 8)
+
+local TransparencyLabel = createPropertyLabel("Background Transparency (0-1)", 9)
+local TransparencyField = createTextBox("0 = Opaque, 1 = Invisible", 10)
+
+-- Text Specific Properties
+local TextHeader = createPropertyLabel("--- Text Properties ---", 11)
+TextHeader.TextXAlignment = Enum.TextXAlignment.Center
+TextHeader.TextColor3 = colors.PrimaryAccent
+
+local TextColorLabel = createPropertyLabel("Text Color (RGB 0-255)", 12)
+local TextColorR, TextColorG, TextColorB = createColorFields("TextColor", 13)
+
+local TextSizeLabel = createPropertyLabel("Text Size (1-100)", 14)
+local TextSizeField = createTextBox("Font Size", 15)
+
+local TextScaledLabel = createPropertyLabel("Text Scaled", 16)
+local TextScaledToggle = createToggle("Text Scaled", 17)
+
+local ScriptLabel = createPropertyLabel("Button Script (Lua)", 18)
+ScriptLabel.Visible = false
+local ScriptField = Instance.new("TextBox")
+ScriptField.Size = UDim2.new(1, 0, 0, 80)
+ScriptField.PlaceholderText = "print('Button clicked!')"
+ScriptField.Text = ""
+ScriptField.BackgroundColor3 = colors.InputBackground
+ScriptField.TextColor3 = colors.TextPrimary
+ScriptField.PlaceholderColor3 = colors.TextDisabled
+ScriptField.BorderSizePixel = 0
+ScriptField.TextSize = 13
+ScriptField.Font = Enum.Font.Code
+ScriptField.TextWrapped = true
+ScriptField.TextXAlignment = Enum.TextXAlignment.Left
+ScriptField.TextYAlignment = Enum.TextYAlignment.Top
+ScriptField.MultiLine = true
+ScriptField.ClearTextOnFocus = false
+ScriptField.Visible = false
+ScriptField.LayoutOrder = 19
+ScriptField.Parent = PropertiesContainer
+local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 4); corner.Parent = ScriptField
+addStroke(ScriptField, 1, colors.SecondaryAccent)
+
+-- Frame Specific Properties
+local FrameHeader = createPropertyLabel("--- Frame Properties ---", 20)
+FrameHeader.TextXAlignment = Enum.TextXAlignment.Center
+FrameHeader.TextColor3 = colors.PrimaryAccent
+FrameHeader.Visible = false
+
+
+-- Effects Properties
+local EffectsHeader = createPropertyLabel("--- Effects ---", 23)
+EffectsHeader.TextXAlignment = Enum.TextXAlignment.Center
+EffectsHeader.TextColor3 = colors.PrimaryAccent
+
+local UICornerLabel = createPropertyLabel("UI Corner", 24)
+local UICornerToggle = createToggle("UI Corner", 25)
+
+local CornerRadiusLabel = createPropertyLabel("Corner Radius (Scale 0-1)", 26)
+CornerRadiusLabel.Visible = false
+local CornerRadius = createTextBox("e.g., 0.1 or 0,8 for pixels", 27)
+CornerRadius.Visible = false
+
+local UIStrokeLabel = createPropertyLabel("UI Stroke", 28)
+local UIStrokeToggle = createToggle("UI Stroke", 29)
+
+local StrokeThicknessLabel = createPropertyLabel("Stroke Thickness (1-10)", 30)
+StrokeThicknessLabel.Visible = false
+local StrokeThickness = createTextBox("e.g., 2", 31)
+StrokeThickness.Visible = false
+
+local StrokeColorLabel = createPropertyLabel("Stroke Color (RGB 0-255)", 32)
+StrokeColorLabel.Visible = false
+local StrokeColorR, StrokeColorG, StrokeColorB = createColorFields("StrokeColor", 33)
+StrokeColorR.Visible = false
+StrokeColorG.Visible = false
+StrokeColorB.Visible = false
+
+-- Delete Button
+local DeleteElementLabel = createPropertyLabel("--- Actions ---", 34)
+DeleteElementLabel.TextXAlignment = Enum.TextXAlignment.Center
+DeleteElementLabel.TextColor3 = colors.Delete
+local DeleteElementButton = Instance.new("TextButton")
+DeleteElementButton.Size = UDim2.new(1, 0, 0, 30)
+DeleteElementButton.Text = "Delete Element"
+DeleteElementButton.BackgroundColor3 = colors.Delete
+DeleteElementButton.TextColor3 = colors.TextPrimary
+DeleteElementButton.TextSize = 14
+DeleteElementButton.Font = fonts.Button
+DeleteElementButton.BorderSizePixel = 0
+DeleteElementButton.LayoutOrder = 35
+DeleteElementButton.Parent = PropertiesContainer
+
+local DraggableLabel = createPropertyLabel("Draggable", 36)
+local DraggableToggle = createToggle("Draggable", 37)
+
+local delCorner = Instance.new("UICorner"); delCorner.CornerRadius = UDim.new(0, 4); delCorner.Parent = DeleteElementButton
+addStroke(DeleteElementButton, 1, Color3.fromRGB(255, 80, 80))
+
+-- Update Properties Canvas Size
+local function updatePropertiesCanvasSize()
+    Properties.CanvasSize = UDim2.new(0, 0, 0, PropertiesLayout.AbsoluteContentSize.Y + PropertiesPadding.PaddingTop.Offset + PropertiesPadding.PaddingBottom.Offset)
+end
+PropertiesLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updatePropertiesCanvasSize)
+PropertiesContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePropertiesCanvasSize)
+
+-- Data Management
+local buttonClickConnections = {}
+local createdElements = {}
+local buttonBindings = {}
+local buttonScripts = {}
+local frameChildren = {}
+local selectedElement = nil
+local currentPopup = nil
+local highlightStroke = nil
+
+
+local draggableElements = {}
+
+-- Dragging Functionality
+local function makeDraggable(obj)
+    local dragging = false
+    local dragInput = nil
+    local dragStart = nil
+    local startPos = nil
+
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then return end
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+
+            local connection
+            connection = UserInputService.InputEnded:Connect(function(endInput)
+                if endInput.UserInputType == input.UserInputType then
+                    if dragging then
+                        dragging = false
+                        dragInput = nil
+                        if connection then connection:Disconnect() end
+                    end
+                end
+            end)
+        end
+    end)
+
+    obj.InputChanged:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if dragging and input.Position then
+                dragInput = input
+                local delta = input.Position - dragStart
+                local parentAbsSize = Vector2.new(ScreenGui.AbsoluteSize.X, ScreenGui.AbsoluteSize.Y)
+                if obj.Parent and obj.Parent:IsA("GuiObject") then
+                    parentAbsSize = obj.Parent.AbsoluteSize
+                end
+
+                if parentAbsSize.X == 0 or parentAbsSize.Y == 0 then return end
+
+                local newPos = UDim2.new(
+                    startPos.X.Scale + (delta.X / parentAbsSize.X), startPos.X.Offset,
+                    startPos.Y.Scale + (delta.Y / parentAbsSize.Y), startPos.Y.Offset
+                )
+
+                local anchor = obj.AnchorPoint
+                local sizeScale = obj.Size.X.Scale
+                local sizeOffset = obj.Size.X.Offset
+                newPos = UDim2.new(
+                    math.clamp(newPos.X.Scale, 0 - anchor.X * sizeScale, 1 - anchor.X * sizeScale),
+                    math.clamp(newPos.X.Offset, 0 - anchor.X * sizeOffset, parentAbsSize.X - anchor.X * sizeOffset - sizeOffset),
+                    newPos.Y.Scale,
+                    newPos.Y.Offset
+                )
+
+                sizeScale = obj.Size.Y.Scale
+                sizeOffset = obj.Size.Y.Offset
+                newPos = UDim2.new(
+                    newPos.X.Scale,
+                    newPos.X.Offset,
+                    math.clamp(newPos.Y.Scale, 0 - anchor.Y * sizeScale, 1 - anchor.Y * sizeScale),
+                    math.clamp(newPos.Y.Offset, 0 - anchor.Y * sizeOffset, parentAbsSize.Y - anchor.Y * sizeOffset - sizeOffset)
+                )
+
+                
+                -- محاذاة للشبكة عند الإفلات
+                newPos = UDim2.new(
+                    math.floor(newPos.X.Scale * parentAbsSize.X / 10) * 10 / parentAbsSize.X,
+                    math.floor(newPos.X.Offset / 10) * 10,
+                    math.floor(newPos.Y.Scale * parentAbsSize.Y / 10) * 10 / parentAbsSize.Y,
+                    math.floor(newPos.Y.Offset / 10) * 10
+                )
+
+                obj.Position = newPos
+            end
+        end
+    end)
+end
+
+-- Hide All Popups Except Active
+local function hideAllPopupsExcept(activePopup)
+    if currentPopup and currentPopup ~= activePopup and currentPopup.Parent then
+        currentPopup:Destroy()
+    end
+    currentPopup = activePopup
+end
+
+-- Hide Frame and Its Children
+local function hideFrameAndChildren(frame)
+    frame.Visible = false
+    for _, element in pairs(createdElements) do
+        if element.Parent == frame and (element:IsA("Frame") or element:IsA("ScrollingFrame")) then
+            hideFrameAndChildren(element)
+        elseif element.Parent == frame then
+            element.Visible = false
+        end
+    end
+end
+
+-- Show Frame and Direct Children
+local function showFrameAndDirectChildren(frame)
+    frame.Visible = true
+    for _, element in pairs(createdElements) do
+        if element.Parent == frame then
+            if element:IsA("Frame") or element:IsA("ScrollingFrame") then
+                -- Don't automatically show child frames
+            else
+                element.Visible = true
+            end
+        end
+    end
+end
+
+-- Update Property Panel Visibility
+local function updatePropertyVisibility(element)
+
+    DraggableLabel.Visible = true
+    DraggableToggle.Visible = true
+    DraggableToggle.Text = "Draggable: " .. (draggableElements[element] and "On" or "Off")
+    DraggableToggle.BackgroundColor3 = draggableElements[element] and colors.PrimaryAccent or colors.SecondaryAccent
+
+    local isText = element:IsA("TextLabel") or element:IsA("TextButton")
+    local isButton = element:IsA("TextButton")
+    local isFrame = element:IsA("Frame") or element:IsA("ScrollingFrame")
+
+    TextHeader.Visible = isText
+    TextColorLabel.Visible = isText
+    TextColorR.Parent.Visible = isText
+    TextSizeLabel.Visible = isText
+    TextSizeField.Visible = isText
+    TextScaledLabel.Visible = isText
+    TextScaledToggle.Visible = isText
+
+    ScriptLabel.Visible = isButton
+    ScriptField.Visible = isButton
+
+    FrameHeader.Visible = isFrame
+    local uiCorner = element:FindFirstChild("UICorner")
+    CornerRadiusLabel.Visible = uiCorner ~= nil
+    CornerRadius.Visible = uiCorner ~= nil
+
+    local uiStroke = element:FindFirstChild("UIStroke")
+    StrokeThicknessLabel.Visible = uiStroke ~= nil
+    StrokeThickness.Visible = uiStroke ~= nil
+    StrokeColorLabel.Visible = uiStroke ~= nil
+    StrokeColorR.Visible = uiStroke ~= nil
+    StrokeColorG.Visible = uiStroke ~= nil
+    StrokeColorB.Visible = uiStroke ~= nil
+
+    task.wait()
+    updatePropertiesCanvasSize()
+end
+
+-- Select Element (Highlight without permanent UIStroke)
+local function selectElement(element)
+    if selectedElement == element then return end
+
+    if highlightStroke and highlightStroke.Parent then
+        highlightStroke:Destroy()
+        highlightStroke = nil
+    end
+
+    selectedElement = element
+
+    if element then
+        Properties.Visible = true
+        
+    else
+        Properties.Visible = false
+        return
+    end
+
+    NameField.Text = element:IsA("TextLabel") or element:IsA("TextButton") and element.Text or element.Name
+    SizeX.Text = string.format("%.3f", element.Size.X.Scale)
+    SizeY.Text = string.format("%.3f", element.Size.Y.Scale)
+    OffsetX.Text = tostring(element.Size.X.Offset)
+    OffsetY.Text = tostring(element.Size.Y.Offset)
+    ColorR.Text = tostring(math.floor(element.BackgroundColor3.R * 255))
+    ColorG.Text = tostring(math.floor(element.BackgroundColor3.G * 255))
+    ColorB.Text = tostring(math.floor(element.BackgroundColor3.B * 255))
+    TransparencyField.Text = string.format("%.2f", element.BackgroundTransparency)
+
+    if element:IsA("TextButton") or element:IsA("TextLabel") then
+        TextColorR.Text = tostring(math.floor(element.TextColor3.R * 255))
+        TextColorG.Text = tostring(math.floor(element.TextColor3.G * 255))
+        TextColorB.Text = tostring(math.floor(element.TextColor3.B * 255))
+        TextSizeField.Text = tostring(element.TextSize)
+        TextScaledToggle.Text = "Text Scaled: " .. (element.TextScaled and "On" or "Off")
+        TextScaledToggle.BackgroundColor3 = element.TextScaled and colors.PrimaryAccent or colors.SecondaryAccent
+    end
+
+    if element:IsA("TextButton") then
+        ScriptField.Text = buttonScripts[element] or ""
+    end
+
+    if element:IsA("Frame") or element:IsA("ScrollingFrame") then
+        ScrollingToggle.Text = "Scrolling: " .. (element:IsA("ScrollingFrame") and "On" or "Off")
+        ScrollingToggle.BackgroundColor3 = element:IsA("ScrollingFrame") and colors.PrimaryAccent or colors.SecondaryAccent
+    end
+
+    local uiCorner = element:FindFirstChildOfClass("UICorner")
+    UICornerToggle.Text = "UI Corner: " .. (uiCorner and "On" or "Off")
+    UICornerToggle.BackgroundColor3 = uiCorner and colors.PrimaryAccent or colors.SecondaryAccent
+    if uiCorner then
+        CornerRadius.Text = string.format("%.2f", uiCorner.CornerRadius.Scale) .. "," .. tostring(uiCorner.CornerRadius.Offset)
+    else
+        CornerRadius.Text = "0,8" -- Default value when turned on
+    end
+
+    local uiStroke = element:FindFirstChildOfClass("UIStroke")
+    UIStrokeToggle.Text = "UI Stroke: " .. (uiStroke and "On" or "Off")
+    UIStrokeToggle.BackgroundColor3 = uiStroke and colors.PrimaryAccent or colors.SecondaryAccent
+    if uiStroke then
+        StrokeThickness.Text = tostring(uiStroke.Thickness)
+        StrokeColorR.Text = tostring(math.floor(uiStroke.Color.R * 255))
+        StrokeColorG.Text = tostring(math.floor(uiStroke.Color.G * 255))
+        StrokeColorB.Text = tostring(math.floor(uiStroke.Color.B * 255))
+    else
+        StrokeThickness.Text = "2" -- Default value
+        StrokeColorR.Text = "0"
+        StrokeColorG.Text = "122"
+        StrokeColorB.Text = "204"
+    end
+
+    updatePropertyVisibility(element)
+
+    DraggableLabel.Visible = true
+    DraggableToggle.Visible = true
+    DraggableToggle.Text = "Draggable: " .. (draggableElements[element] and "On" or "Off")
+    DraggableToggle.BackgroundColor3 = draggableElements[element] and colors.PrimaryAccent or colors.SecondaryAccent
+
+end
+
+-- Generic Popup Creation Helper
+local function createPopupFrame(titleText, size)
+    hideAllPopupsExcept(nil)
+
+    local popup = Instance.new("Frame")
+popup.Active = true
+    popup.Size = size or UDim2.new(0.3, 0, 0.4, 0)
+    popup.AnchorPoint = Vector2.new(0.5, 0.5)
+    popup.Position = UDim2.new(0.5, 0, 0.5, 0)
+    popup.BackgroundColor3 = colors.PanelBackground
+    popup.BorderSizePixel = 0
+    popup.ZIndex = 200
+    popup.Parent = ScreenGui
+    addStroke(popup, 1, colors.SecondaryAccent)
+    local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 8); corner.Parent = popup
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -40, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.Text = titleText
+    title.TextColor3 = colors.TextPrimary
+    title.BackgroundTransparency = 1
+    title.TextSize = 18
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = fonts.Title
+    title.ZIndex = 201
+    title.Parent = popup
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.AnchorPoint = Vector2.new(1, 0)
+    closeButton.Position = UDim2.new(1, -10, 0, 10)
+    closeButton.Text = "X"
+    closeButton.Font = fonts.Button
+    closeButton.TextSize = 16
+    closeButton.TextColor3 = colors.TextPrimary
+    closeButton.BackgroundColor3 = colors.SecondaryAccent
+    closeButton.BorderSizePixel = 0
+    closeButton.ZIndex = 201
+    local cbCorner = Instance.new("UICorner"); cbCorner.CornerRadius = UDim.new(1,0); cbCorner.Parent = closeButton
+    closeButton.Parent = popup
+    closeButton.MouseButton1Click:Connect(function() popup:Destroy(); currentPopup = nil end)
+
+    currentPopup = popup
+    return popup
+end
+
+-- Parent Selection Popup
+local function showParentSelectionPopup(elementType, callback)
+    local popup = createPopupFrame("Select Parent for " .. elementType, UDim2.new(0.25, 0, 0.5, 0))
+
+    local listFrame = Instance.new("ScrollingFrame")
+listFrame.Active = true
+    listFrame.Size = UDim2.new(1, -20, 1, -50)
+    listFrame.Position = UDim2.new(0, 10, 0, 40)
+    listFrame.BackgroundColor3 = colors.InputBackground
+    listFrame.BorderSizePixel = 0
+    listFrame.ScrollBarThickness = 5
+    listFrame.ScrollBarImageColor3 = colors.SecondaryAccent
+    listFrame.ZIndex = 201
+    listFrame.Parent = popup
+    local listCorner = Instance.new("UICorner"); listCorner.CornerRadius = UDim.new(0,4); listCorner.Parent = listFrame
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.Parent = listFrame
+    local listPadding = Instance.new("UIPadding"); listPadding.PaddingTop = UDim.new(0,5); listPadding.PaddingBottom = UDim.new(0,5); listPadding.Parent = listFrame
+
+    local function createOptionButton(text, parentObj)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, -10, 0, 30)
+        button.Text = text
+        button.BackgroundColor3 = colors.PrimaryAccent
+    
+
+    -- تدرج لوني احترافي للأزرار
+    local gradientTween = TweenService:Create(button, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+    })
+    gradientTween:Play()
+
+        button.TextColor3 = colors.TextPrimary
+        button.TextSize = 14
+        button.Font = fonts.Button
+        button.BorderSizePixel = 0
+        button.ZIndex = 202
+        button.Parent = listFrame
+        local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0,4); btnCorner.Parent = button
+        button.MouseButton1Click:Connect(function()
+            callback(parentObj)
+            popup:Destroy()
+            currentPopup = nil
+        end)
+        return button
+    end
+
+    createOptionButton("ScreenGui (Top Level)", ScreenGui)
+
+    for _, element in ipairs(createdElements) do
+        if element:IsA("Frame") or element:IsA("ScrollingFrame") then
+            createOptionButton(element.Name or "Unnamed Frame", element)
+        end
+    end
+    task.wait()
+    listFrame.CanvasSize = UDim2.new(0,0,0, listLayout.AbsoluteContentSize.Y + 10)
+
+    return popup
+end
+
+-- Add Element Popup
+local function showAddElementPopup()
+    local popup = createPopupFrame("Add Element", UDim2.new(0.25, 0, 0.3, 0))
+
+    local listFrame = Instance.new("Frame")
+    listFrame.Size = UDim2.new(1, -20, 1, -50)
+    listFrame.Position = UDim2.new(0, 10, 0, 40)
+    listFrame.BackgroundTransparency = 1
+    listFrame.ZIndex = 201
+    listFrame.Parent = popup
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 8)
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.Parent = listFrame
+
+    local function createAddButton(text, elementType)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, 0, 0, 35)
+        button.Text = "Add " .. text
+        button.BackgroundColor3 = colors.PrimaryAccent
+    
+
+    -- تدرج لوني احترافي للأزرار
+    local gradientTween = TweenService:Create(button, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+    })
+    gradientTween:Play()
+
+        button.TextColor3 = colors.TextPrimary
+        button.TextSize = 17
+        button.Font = fonts.Button
+        button.BorderSizePixel = 0
+        button.ZIndex = 202
+        button.Parent = listFrame
+        local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0,6); btnCorner.Parent = button
+        addStroke(button, 1, Color3.fromRGB(50, 200, 255))
+    button.AutoButtonColor = true
+
+        button.MouseButton1Click:Connect(function()
+            showParentSelectionPopup(text, function(parent)
+                local newElement
+                if elementType == "TextButton" then
+                    newElement = Instance.new("TextButton")
+                    newElement.Size = UDim2.new(0.2, 0, 0, 40)
+                    newElement.Position = UDim2.new(0.1, 0, 0.1, 0)
+                    newElement.Text = "New Button"
+                    newElement.TextColor3 = colors.TextPrimary
+                    newElement.TextSize = 16
+                    newElement.Font = fonts.Button
+                    newElement.BackgroundColor3 = colors.PrimaryAccent
+                    newElement.MouseButton1Click:Connect(function()
+                        local scriptCode = buttonScripts[newElement]
+                        if scriptCode and scriptCode:match("%S") then
+                            local func, err = loadstring(scriptCode)
+                            if func then
+                                local success, errorMsg = pcall(func)
+                                if not success then warn("Script Error:", errorMsg) end
+                            else warn("Script Compile Error:", err) end
+                        end
+                    end)
+                elseif elementType == "TextLabel" then
+                    newElement = Instance.new("TextLabel")
+                    newElement.Size = UDim2.new(0.3, 0, 0, 30)
+                    newElement.Position = UDim2.new(0.1, 0, 0.1, 0)
+                    newElement.Text = "New Label"
+                    newElement.TextColor3 = colors.TextSecondary
+                    newElement.TextSize = 14
+                    newElement.Font = fonts.Body
+                    newElement.BackgroundTransparency = 1
+                    newElement.BackgroundColor3 = colors.PanelBackground
+                elseif elementType == "Frame" then
+                    newElement = Instance.new("Frame")
+                    newElement.Size = UDim2.new(0.5, 0, 0.5, 0)
+                    newElement.Position = UDim2.new(0.1, 0, 0.1, 0)
+                    newElement.BackgroundColor3 = colors.PanelBackground
+                    newElement.Name = "New Frame"
+                end
+
+                if newElement then
+                    newElement.BorderSizePixel = 0
+                    newElement.Parent = parent
+                    local elCorner = Instance.new("UICorner"); elCorner.CornerRadius = UDim.new(0,4); elCorner.Parent = newElement
+
+                    table.insert(createdElements, newElement)
+                    makeDraggable(newElement)
+                    newElement.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                            task.wait()
+                            selectElement(newElement)
+                        end
+                    end)
+                    selectElement(newElement)
+                end
+            end)
+            popup:Destroy()
+        end)
+    end
+
+    createAddButton("TextButton", "TextButton")
+    createAddButton("TextLabel", "TextLabel")
+    createAddButton("Frame", "Frame")
+end
+
+-- Bind Button to Frame Popup
+local function showBindButtonToFramePopup(buttonToBind)
+    if not buttonToBind or not buttonToBind:IsA("TextButton") then
+        warn("Bind Error: No valid button selected.")
+        return
+    end
+
+    local popup = createPopupFrame("Bind '" .. (buttonToBind.Text or "Button") .. "' to Frame", UDim2.new(0.25, 0, 0.5, 0))
+
+    local listFrame = Instance.new("ScrollingFrame")
+listFrame.Active = true
+    listFrame.Size = UDim2.new(1, -20, 1, -50)
+    listFrame.Position = UDim2.new(0, 10, 0, 40)
+    listFrame.BackgroundColor3 = colors.InputBackground
+    listFrame.BorderSizePixel = 0
+    listFrame.ScrollBarThickness = 5
+    listFrame.ScrollBarImageColor3 = colors.SecondaryAccent
+    listFrame.ZIndex = 201
+    listFrame.Parent = popup
+    local listCorner = Instance.new("UICorner"); listCorner.CornerRadius = UDim.new(0,4); listCorner.Parent = listFrame
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.Parent = listFrame
+    local listPadding = Instance.new("UIPadding"); listPadding.PaddingTop = UDim.new(0,5); listPadding.PaddingBottom = UDim.new(0,5); listPadding.Parent = listFrame
+
+    local function createOptionButton(text, frameToBind)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, -10, 0, 30)
+        button.Text = text
+        button.BackgroundColor3 = colors.PrimaryAccent
+    
+
+    -- تدرج لوني احترافي للأزرار
+    local gradientTween = TweenService:Create(button, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+    })
+    gradientTween:Play()
+
+        button.TextColor3 = colors.TextPrimary
+        button.TextSize = 14
+        button.Font = fonts.Button
+        button.BorderSizePixel = 0
+        button.ZIndex = 202
+        button.Parent = listFrame
+        local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0,4); btnCorner.Parent = button
+        button.MouseButton1Click:Connect(function()
+            if buttonClickConnections[buttonToBind] then
+    buttonClickConnections[buttonToBind]:Disconnect()
+end
+
+            buttonBindings[buttonToBind] = frameToBind
+            frameToBind.Visible = false
+
+            local directParentFrame = buttonToBind.Parent
+            if directParentFrame and (directParentFrame:IsA("Frame") or directParentFrame:IsA("ScrollingFrame")) then
+                if not frameChildren[directParentFrame] then frameChildren[directParentFrame] = {} end
+                if not table.find(frameChildren[directParentFrame], frameToBind) then
+                    table.insert(frameChildren[directParentFrame], frameToBind)
+                end
+            end
+
+            buttonClickConnections[buttonToBind] = buttonToBind.MouseButton1Click:Connect(function()
+                if frameToBind and frameToBind.Parent then
+                    if frameToBind.Visible then
+                        hideFrameAndChildren(frameToBind)
+                    else
+                        local parent = buttonToBind.Parent
+                        if parent then
+                            for potentialButton, potentialFrame in pairs(buttonBindings) do
+                                if potentialButton.Parent == parent and potentialButton ~= buttonToBind and potentialFrame.Parent then
+                                    hideFrameAndChildren(potentialFrame)
+                                end
+                            end
+                        end
+                        showFrameAndDirectChildren(frameToBind)
+                    end
+                else
+                    warn("Bound frame for button '" .. buttonToBind.Name .. "' no longer exists.")
+                    buttonBindings[buttonToBind] = nil
+                end
+
+                local scriptCode = buttonScripts[buttonToBind]
+                if scriptCode and scriptCode:match("%S") then
+                    local func, err = loadstring(scriptCode)
+                    if func then
+                        local success, errorMsg = pcall(func)
+                        if not success then warn("Script Error:", errorMsg) end
+                    else warn("Script Compile Error:", err) end
+                end
+            end)
+
+            popup:Destroy()
+            currentPopup = nil
+        end)
+        return button
+    end
+
+    local hasFrames = false
+    for _, element in ipairs(createdElements) do
+        if element ~= buttonToBind and (element:IsA("Frame") or element:IsA("ScrollingFrame")) then
+            createOptionButton(element.Name or "Unnamed Frame", element)
+            hasFrames = true
+        end
+    end
+
+    if not hasFrames then
+        local noFramesLabel = Instance.new("TextLabel")
+        noFramesLabel.Size = UDim2.new(1, -10, 0, 30)
+        noFramesLabel.Text = "No frames available to bind."
+        noFramesLabel.TextColor3 = colors.TextDisabled
+        noFramesLabel.BackgroundTransparency = 1
+        noFramesLabel.TextSize = 14
+        noFramesLabel.Parent = listFrame
+    end
+
+    task.wait()
+    listFrame.CanvasSize = UDim2.new(0,0,0, listLayout.AbsoluteContentSize.Y + 10)
+end
+
+-- Toolbox Button Connections
+ButtonsButton.MouseButton1Click:Connect(showAddElementPopup)
+BindButtonToFrame.MouseButton1Click:Connect(function()
+    if selectedElement and selectedElement:IsA("TextButton") then
+        showBindButtonToFramePopup(selectedElement)
+    else
+        warn("Please select a TextButton first to bind it.")
+    end
+end)
+
+-- Copy Element Functionality (Fixed Bind Button Issue)
+CopyButton.MouseButton1Click:Connect(function()
+    if selectedElement then
+        local clone = selectedElement:Clone()
+        selectElement(selectedElement) -- Reselect to update highlight
+
+        local offset = UDim2.new(0.02, 0, 0.02, 0)
+        clone.Position = selectedElement.Position + offset
+
+        local oldHighlight = clone:FindFirstChild("EditorHighlightStroke")
+        if oldHighlight then oldHighlight:Destroy() end
+
+        if clone:IsA("TextButton") then
+            -- Copy button script if it exists
+            if buttonScripts[selectedElement] then
+                buttonScripts[clone] = buttonScripts[selectedElement]
+            end
+
+            -- Clear any existing connections on the cloned button
+            for _, conn in pairs(getconnections(clone.MouseButton1Click)) do conn:Disconnect() end
+
+            -- Handle binding if the original button was bound to a frame
+            if buttonBindings[selectedElement] then
+                local targetFrame = buttonBindings[selectedElement]
+                buttonBindings[clone] = targetFrame -- Bind the clone to the same frame
+
+                -- Replicate the binding logic for the cloned button
+                clone.MouseButton1Click:Connect(function()
+                    if targetFrame and targetFrame.Parent then
+                        if targetFrame.Visible then
+                            hideFrameAndChildren(targetFrame)
+                        else
+                            local parent = clone.Parent
+                            if parent then
+                                -- Hide other bound frames within the same parent
+                                for potentialButton, potentialFrame in pairs(buttonBindings) do
+                                    if potentialButton.Parent == parent and potentialButton ~= clone and potentialFrame.Parent then
+                                        hideFrameAndChildren(potentialFrame)
+                                    end
+                                end
+                            end
+                            showFrameAndDirectChildren(targetFrame)
+                        end
+
+                        -- Execute any associated script
+                        local scriptCode = buttonScripts[clone]
+                        if scriptCode and scriptCode:match("%S") then
+                            local func, err = loadstring(scriptCode)
+                            if func then
+                                local success, errorMsg = pcall(func)
+                                if not success then warn("Script Error:", errorMsg) end
+                            else warn("Script Compile Error:", err) end
+                        end
+                    else
+                        warn("Bound frame for cloned button '" .. clone.Name .. "' no longer exists.")
+                        buttonBindings[clone] = nil
+                    end
+                end)
+            else
+                -- If no binding, just connect the script (if any)
+                clone.MouseButton1Click:Connect(function()
+                    local scriptCode = buttonScripts[clone]
+                    if scriptCode and scriptCode:match("%S") then
+                        local func, err = loadstring(scriptCode)
+                        if func then
+                            local success, errorMsg = pcall(func)
+                            if not success then warn("Script Error:", errorMsg) end
+                        else warn("Script Compile Error:", err) end
+                    end
+                end)
+            end
+        end
+
+        clone.Parent = selectedElement.Parent
+        table.insert(createdElements, clone)
+        if draggableElements[clone] then makeDraggable(clone) end
+
+        clone.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                task.wait()
+                selectElement(clone)
+            end
+        end)
+
+        selectElement(clone)
+    else
+        warn("Please select an element to copy first.")
+    end
+end)
+
+-- Copy Script Functionality (Fixed % Operator Issue)
+CopyScript.MouseButton1Click:Connect(function()
+    local scriptOutput = "-- GUI Created with GUI Editor by KULTHX  EDITOR Pro\n\n"
+    scriptOutput = scriptOutput .. "local Players = game:GetService('Players')\n"
+    scriptOutput = scriptOutput .. "local player = Players.LocalPlayer\n"
+    scriptOutput = scriptOutput .. "local playerGui = player:WaitForChild('PlayerGui')\n\n"
+    scriptOutput = scriptOutput .. "local ScreenGui = Instance.new('ScreenGui')\n"
+    scriptOutput = scriptOutput .. "ScreenGui.Name = 'GeneratedGUI'\n"
+    scriptOutput = scriptOutput .. "ScreenGui.ResetOnSpawn = false\n"
+    scriptOutput = scriptOutput .. "ScreenGui.Parent = playerGui\n\n"
+
+    local elementVarNames = {}
+    local elementCounter = 1
+
+    local function getVarName(element)
+        if not element then return "nil --[[ ERROR: Element was nil ]]" end
+        if not elementVarNames[element] then
+            local baseName = element.Name:gsub("[^%w_]", "")
+            if baseName == "" or not baseName:match("^[a-zA-Z_]") or baseName == "function" or baseName == "local" or baseName == "end" then
+                baseName = element.ClassName
+            end
+            elementVarNames[element] = baseName .. "_" .. elementCounter
+            elementCounter = elementCounter + 1
+        end
+        return elementVarNames[element]
+    end
+
+    local function formatColor3(color)
+        return string.format("Color3.fromRGB(%d, %d, %d)", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+    end
+
+    local function formatUDim(udim)
+        return string.format("UDim.new(%.4f, %d)", udim.Scale, udim.Offset)
+    end
+
+    local function formatUDim2(udim)
+        return string.format("UDim2.new(%.4f, %d, %.4f, %d)", udim.X.Scale, udim.X.Offset, udim.Y.Scale, udim.Y.Offset)
+    end
+
+    local function generateElementCode(element, parentVarName)
+        if not element or not element.Parent then return "-- Skipping element (invalid reference)\n" end
+        local varName = getVarName(element)
+        local className = element.ClassName
+        local code = ""
+
+        code = code .. string.format("local %s = Instance.new('%s')\n", varName, className)
+        code = code .. string.format("%s.Name = '%s'\n", varName, element.Name)
+        code = code .. string.format("%s.Size = %s\n", varName, formatUDim2(element.Size))
+        code = code .. string.format("%s.Position = %s\n", varName, formatUDim2(element.Position))
+        code = code .. string.format("%s.BackgroundColor3 = %s\n", varName, formatColor3(element.BackgroundColor3))
+        code = code .. string.format("%s.BackgroundTransparency = %.2f\n", varName, element.BackgroundTransparency)
+        code = code .. string.format("%s.Visible = %s\n", varName, tostring(element.Visible))
+
+        if className == "TextLabel" or className == "TextButton" then
+            if element.Font then
+                code = code .. string.format("%s.Font = Enum.Font.%s\n", varName, element.Font.Name)
+            end
+            code = code .. string.format("%s.Text = [[%s]]\n", varName, element.Text)
+            code = code .. string.format("%s.TextColor3 = %s\n", varName, formatColor3(element.TextColor3))
+            code = code .. string.format("%s.TextSize = %.1f\n", varName, element.TextSize)
+            code = code .. string.format("%s.TextScaled = %s\n", varName, tostring(element.TextScaled))
+            code = code .. string.format("%s.TextWrapped = %s\n", varName, tostring(element.TextWrapped))
+            if element.TextXAlignment then
+                code = code .. string.format("%s.TextXAlignment = Enum.TextXAlignment.%s\n", varName, element.TextXAlignment.Name)
+            end
+            if element.TextYAlignment then
+                code = code .. string.format("%s.TextYAlignment = Enum.TextYAlignment.%s\n", varName, element.TextYAlignment.Name)
+            end
+        end
+        if className == "ScrollingFrame" then
+            if element.ScrollingDirection then
+                code = code .. string.format("%s.ScrollingDirection = Enum.ScrollingDirection.%s\n", varName, element.ScrollingDirection.Name)
+            end
+            code = code .. string.format("%s.ScrollBarThickness = %d\n", varName, element.ScrollBarThickness)
+            code = code .. string.format("%s.ScrollBarImageColor3 = %s\n", varName, formatColor3(element.ScrollBarImageColor3))
+            code = code .. string.format("%s.CanvasSize = %s\n", varName, formatUDim2(element.CanvasSize))
+        end
+
+        for _, childEffect in pairs(element:GetChildren()) do
+            if childEffect:IsA("UICorner") then
+                local cornerVar = varName .. "_corner"
+                code = code .. string.format("local %s = Instance.new('UICorner')\n", cornerVar)
+                code = code .. string.format("%s.CornerRadius = %s\n", cornerVar, formatUDim(childEffect.CornerRadius))
+                code = code .. string.format("%s.Parent = %s\n", cornerVar, varName)
+            elseif childEffect:IsA("UIStroke") then
+                local strokeVar = varName .. "_stroke"
+                code = code .. string.format("local %s = Instance.new('UIStroke')\n", strokeVar)
+                code = code .. string.format("%s.Thickness = %d\n", strokeVar, childEffect.Thickness)
+                code = code .. string.format("%s.Color = %s\n", strokeVar, formatColor3(childEffect.Color))
+                code = code .. string.format("%s.ApplyStrokeMode = Enum.ApplyStrokeMode.%s\n", strokeVar, childEffect.ApplyStrokeMode.Name)
+                code = code .. string.format("%s.Parent = %s\n", strokeVar, varName)
+            end
+        end
+
+        code = code .. string.format("%s.Parent = %s\n", varName, parentVarName)
+        code = code .. "\n"
+
+        
+        if draggableElements[element] then
+            code = code .. string.format("makeDraggable(%s)\n", varName)
+        end
+
+        return code
+    end
+
+    local elementQueue = {}
+    for _, element in ipairs(createdElements) do
+        if element.Parent == ScreenGui then
+            table.insert(elementQueue, element)
+        end
+    end
+
+    local processed = {}
+    local head = 1
+    while head <= #elementQueue do
+        local currentElement = elementQueue[head]
+        head = head + 1
+
+        if currentElement and not processed[currentElement] then
+            processed[currentElement] = true
+            local parentVar = "ScreenGui"
+            if currentElement.Parent ~= ScreenGui then
+                parentVar = getVarName(currentElement.Parent)
+            end
+            scriptOutput = scriptOutput .. generateElementCode(currentElement, parentVar)
+
+            for _, child in pairs(createdElements) do
+                if child.Parent == currentElement then
+                    if not processed[child] then
+                        local alreadyQueued = false
+                        for i = head, #elementQueue do
+                            if elementQueue[i] == child then
+                                alreadyQueued = true
+                                break
+                            end
+                        end
+                        if not alreadyQueued then
+                            table.insert(elementQueue, child)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local hasBindingsOrScripts = false
+    for _, _ in pairs(buttonBindings) do
+        hasBindingsOrScripts = true
+        break
+    end
+    if not hasBindingsOrScripts then
+        for _, scriptCode in pairs(buttonScripts) do
+            if scriptCode and scriptCode:match("%S") then
+                hasBindingsOrScripts = true
+                break
+            end
+        end
+    end
+
+    if hasBindingsOrScripts then
+        scriptOutput = scriptOutput .. "\n-- ====== INTERACTIVITY ======\n\n"
+
+        local hasBindings = false
+        for _, _ in pairs(buttonBindings) do
+            hasBindings = true
+            break
+        end
+        if hasBindings then
+            scriptOutput = scriptOutput .. "-- Helper Functions for Bindings\n"
+            scriptOutput = scriptOutput .. "local function hideFrameAndChildren(frame)\n"
+            scriptOutput = scriptOutput .. "    if not frame or not frame:IsA('GuiObject') then return end\n"
+            scriptOutput = scriptOutput .. "    frame.Visible = false\n"
+            scriptOutput = scriptOutput .. "    for _, child in pairs(frame:GetChildren()) do\n"
+            scriptOutput = scriptOutput .. "        if child:IsA('GuiObject') then\n"
+            scriptOutput = scriptOutput .. "            hideFrameAndChildren(child)\n"
+            scriptOutput = scriptOutput .. "        end\n"
+            scriptOutput = scriptOutput .. "    end\n"
+            scriptOutput = scriptOutput .. "end\n\n"
+            scriptOutput = scriptOutput .. "local function showFrameAndDirectChildren(frame)\n"
+            scriptOutput = scriptOutput .. "    if not frame or not frame:IsA('GuiObject') then return end\n"
+            scriptOutput = scriptOutput .. "    frame.Visible = true\n"
+            scriptOutput = scriptOutput .. "    for _, child in pairs(frame:GetChildren()) do\n"
+            scriptOutput = scriptOutput .. "        if child:IsA('GuiObject') and not child:IsA('Frame') and not child:IsA('ScrollingFrame') then\n"
+            scriptOutput = scriptOutput .. "            child.Visible = true\n"
+            scriptOutput = scriptOutput .. "        end\n"
+            scriptOutput = scriptOutput .. "    end\n"
+            scriptOutput = scriptOutput .. "end\n\n"
+        end
+
+        scriptOutput = scriptOutput .. "
+-- وظيفة تفعيل السحب
+local function makeDraggable(obj)
+    local UserInputService = game:GetService("UserInputService")
+    local dragging, dragInput, dragStart, startPos
+
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+
+            local connection
+            connection = UserInputService.InputEnded:Connect(function(endInput)
+                if endInput.UserInputType == input.UserInputType then
+                    dragging = false
+                    dragInput = nil
+                    if connection then connection:Disconnect() end
+                end
+            end)
+        end
+    end)
+
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and input.Position then
+                dragInput = input
+                local delta = input.Position - dragStart
+                local parentAbsSize = obj.Parent and obj.Parent.AbsoluteSize or Vector2.new(1920, 1080)
+                if parentAbsSize.X == 0 or parentAbsSize.Y == 0 then return end
+
+                local newPos = UDim2.new(
+                    startPos.X.Scale + (delta.X / parentAbsSize.X), startPos.X.Offset,
+                    startPos.Y.Scale + (delta.Y / parentAbsSize.Y), startPos.Y.Offset
+                )
+                obj.Position = newPos
+            end
+        end
+    end)
+end
+
+
+-- Connect Button Actions\n"
+        local connectedButtons = {}
+
+        for button, frame in pairs(buttonBindings) do
+            local buttonVar = elementVarNames[button]
+            local frameVar = elementVarNames[frame]
+            if buttonVar and frameVar and not connectedButtons[button] then
+                local scriptCode = buttonScripts[button] or ""
+                scriptCode = scriptCode:gsub("\n", "\n    "):gsub("^%s+", "")
+
+                scriptOutput = scriptOutput .. string.format("%s.MouseButton1Click:Connect(function()\n", buttonVar)
+                scriptOutput = scriptOutput .. string.format("    local targetFrame = %s\n", frameVar)
+                scriptOutput = scriptOutput .. "    if not targetFrame or not targetFrame.Parent then return end\n"
+                scriptOutput = scriptOutput .. "    if targetFrame.Visible then\n"
+                scriptOutput = scriptOutput .. "        hideFrameAndChildren(targetFrame)\n"
+                scriptOutput = scriptOutput .. "    else\n"
+                scriptOutput = scriptOutput .. string.format("        local parent = %s.Parent\n", buttonVar)
+                scriptOutput = scriptOutput .. "        if parent then\n"
+                scriptOutput = scriptOutput .. "            for _, btn in pairs(parent:GetChildren()) do\n"
+                scriptOutput = scriptOutput .. string.format("                if btn:IsA('TextButton') and btn ~= %s then\n", buttonVar) -- Fixed % operator
+                scriptOutput = scriptOutput .. "                    for _, child in pairs(btn:GetChildren()) do\n"
+                scriptOutput = scriptOutput .. "                        if child:IsA('Frame') or child:IsA('ScrollingFrame') then\n"
+                scriptOutput = scriptOutput .. "                            hideFrameAndChildren(child)\n"
+                scriptOutput = scriptOutput .. "                        end\n"
+                scriptOutput = scriptOutput .. "                    end\n"
+                scriptOutput = scriptOutput .. "                end\n"
+                scriptOutput = scriptOutput .. "            end\n"
+                scriptOutput = scriptOutput .. "        end\n"
+                scriptOutput = scriptOutput .. "        showFrameAndDirectChildren(targetFrame)\n"
+                scriptOutput = scriptOutput .. "    end\n"
+                if scriptCode:match("%S") then
+                    scriptOutput = scriptOutput .. "    pcall(function()\n"
+                    scriptOutput = scriptOutput .. "    " .. scriptCode .. "\n"
+                    scriptOutput = scriptOutput .. "    end)\n"
+                end
+                scriptOutput = scriptOutput .. "end)\n\n"
+                connectedButtons[button] = true
+            end
+        end
+
+        for button, scriptCode in pairs(buttonScripts) do
+            local buttonVar = elementVarNames[button]
+            if buttonVar and not connectedButtons[button] and scriptCode and scriptCode:match("%S") then
+                scriptCode = scriptCode:gsub("\n", "\n    "):gsub("^%s+", "")
+                scriptOutput = scriptOutput .. string.format("%s.MouseButton1Click:Connect(function()\n", buttonVar)
+                scriptOutput = scriptOutput .. "    pcall(function()\n"
+                scriptOutput = scriptOutput .. "    " .. scriptCode .. "\n"
+                scriptOutput = scriptOutput .. "    end)\n"
+                scriptOutput = scriptOutput .. "end)\n\n"
+                connectedButtons[button] = true
+            end
+        end
+    end
+
+    -- Attempt to copy to clipboard with improved error handling
+    local function tryCopyToClipboard()
+        if typeof(setclipboard) == "function" then
+            local success, err = pcall(function()
+                setclipboard(scriptOutput)
+            end)
+            if success then
+                return true, "Script copied to clipboard!"
+            else
+                return false, "Failed to copy script: " .. tostring(err)
+            end
+        else
+            print("--- Generated Script Start ---")
+            print(scriptOutput)
+            print("--- Generated Script End ---")
+            return false, "Clipboard not available; script printed to console."
+        end
+    end
+
+    local success, message = tryCopyToClipboard()
+    local originalText = CopyScript.Text
+    local originalBgColor = CopyScript.BackgroundColor3
+    local originalTextColor = CopyScript.TextColor3
+
+    if success then
+        CopyScript.Text = "Copied!"
+        CopyScript.BackgroundColor3 = colors.PrimaryAccentHover
+        CopyScript.TextColor3 = colors.TextPrimary
+    else
+        CopyScript.Text = "Copy Failed"
+        CopyScript.BackgroundColor3 = colors.Delete
+        CopyScript.TextColor3 = colors.TextPrimary
+        warn(message)
+    end
+
+    -- Reset button appearance after delay
+    task.delay(1.5, function()
+        if CopyScript and CopyScript.Parent then
+            CopyScript.Text = originalText
+            CopyScript.BackgroundColor3 = originalBgColor
+            CopyScript.TextColor3 = originalTextColor
+        end
+    end)
+end)
+
+-- Property Update Connections
+local function safeSetNumberProperty(obj, propName, textValue, isInt, minVal, maxVal, callback)
+    local num = tonumber(textValue)
+    if num ~= nil then
+        if isInt then num = math.floor(num) end
+        if minVal ~= nil then num = math.max(minVal, num) end
+        if maxVal ~= nil then num = math.min(maxVal, num) end
+        if obj[propName] ~= num then
+            obj[propName] = num
+            if callback then callback(num) end
+        end
+        return true
+    else
+        warn("Invalid number input for " .. propName .. ": " .. textValue)
+        return false
+    end
+end
+
+local function safeSetColorProperty(obj, propName, rStr, gStr, bStr)
+    local r, g, b = tonumber(rStr), tonumber(gStr), tonumber(bStr)
+    if r and g and b then
+        r = math.clamp(math.floor(r), 0, 255)
+        g = math.clamp(math.floor(g), 0, 255)
+        b = math.clamp(math.floor(b), 0, 255)
+        local newColor = Color3.fromRGB(r, g, b)
+        if obj[propName] ~= newColor then
+            obj[propName] = newColor
+        end
+        return true
+    else
+        warn("Invalid RGB input for " .. propName .. ": " .. rStr .. "," .. gStr .. "," .. bStr)
+        return false
+    end
+end
+
+local function safeSetUDim2Property(obj, propName, xSStr, xOStr, ySStr, yOStr)
+    local xs, xo, ys, yo = tonumber(xSStr), tonumber(xOStr), tonumber(ySStr), tonumber(yOStr)
+    if xs and xo and ys and yo then
+        local newUDim2 = UDim2.new(xs, math.floor(xo), ys, math.floor(yo))
+        if obj[propName] ~= newUDim2 then
+            obj[propName] = newUDim2
+        end
+        return true
+    else
+        warn("Invalid UDim2 input for " .. propName .. ": " .. xSStr .. "," .. xOStr .. "," .. ySStr .. "," .. yOStr)
+        return false
+    end
+end
+
+NameField.FocusLost:Connect(function(enterPressed)
+    if selectedElement then
+        if selectedElement:IsA("TextLabel") or selectedElement:IsA("TextButton") then
+            selectedElement.Text = NameField.Text
+        else
+            selectedElement.Name = NameField.Text
+        end
+    end
+end)
+
+local function updateSize()
+    if selectedElement then
+        if not safeSetUDim2Property(selectedElement, "Size", SizeX.Text, OffsetX.Text, SizeY.Text, OffsetY.Text) then
+            SizeX.Text = string.format("%.3f", selectedElement.Size.X.Scale)
+            SizeY.Text = string.format("%.3f", selectedElement.Size.Y.Scale)
+            OffsetX.Text = tostring(selectedElement.Size.X.Offset)
+            OffsetY.Text = tostring(selectedElement.Size.Y.Offset)
+        end
+    end
+end
+SizeX.FocusLost:Connect(updateSize)
+SizeY.FocusLost:Connect(updateSize)
+OffsetX.FocusLost:Connect(updateSize)
+OffsetY.FocusLost:Connect(updateSize)
+
+local function updateBgColor()
+    if selectedElement then
+        if not safeSetColorProperty(selectedElement, "BackgroundColor3", ColorR.Text, ColorG.Text, ColorB.Text) then
+            ColorR.Text = tostring(math.floor(selectedElement.BackgroundColor3.R * 255))
+            ColorG.Text = tostring(math.floor(selectedElement.BackgroundColor3.G * 255))
+            ColorB.Text = tostring(math.floor(selectedElement.BackgroundColor3.B * 255))
+        end
+    end
+end
+ColorR.FocusLost:Connect(updateBgColor)
+ColorG.FocusLost:Connect(updateBgColor)
+ColorB.FocusLost:Connect(updateBgColor)
+
+TransparencyField.FocusLost:Connect(function(enterPressed)
+    if selectedElement then
+        if not safeSetNumberProperty(selectedElement, "BackgroundTransparency", TransparencyField.Text, false, 0, 1) then
+            TransparencyField.Text = string.format("%.2f", selectedElement.BackgroundTransparency)
+        end
+    end
+end)
+
+local function updateTextColor()
+    if selectedElement and (selectedElement:IsA("TextLabel") or selectedElement:IsA("TextButton")) then
+        if not safeSetColorProperty(selectedElement, "TextColor3", TextColorR.Text, TextColorG.Text, TextColorB.Text) then
+            TextColorR.Text = tostring(math.floor(selectedElement.TextColor3.R * 255))
+            TextColorG.Text = tostring(math.floor(selectedElement.TextColor3.G * 255))
+            TextColorB.Text = tostring(math.floor(selectedElement.TextColor3.B * 255))
+        end
+    end
+end
+TextColorR.FocusLost:Connect(updateTextColor)
+TextColorG.FocusLost:Connect(updateTextColor)
+TextColorB.FocusLost:Connect(updateTextColor)
+
+TextSizeField.FocusLost:Connect(function(enterPressed)
+    if selectedElement and (selectedElement:IsA("TextLabel") or selectedElement:IsA("TextButton")) then
+        if not safeSetNumberProperty(selectedElement, "TextSize", TextSizeField.Text, false, 1, 100) then
+            TextSizeField.Text = tostring(selectedElement.TextSize)
+        end
+    end
+end)
+
+TextScaledToggle.MouseButton1Click:Connect(function()
+    if selectedElement and (selectedElement:IsA("TextLabel") or selectedElement:IsA("TextButton")) then
+        selectedElement.TextScaled = not selectedElement.TextScaled
+        TextScaledToggle.Text = "Text Scaled: " .. (selectedElement.TextScaled and "On" or "Off")
+        TextScaledToggle.BackgroundColor3 = selectedElement.TextScaled and colors.PrimaryAccent or colors.SecondaryAccent
+    end
+end)
+
+ScriptField.FocusLost:Connect(function(enterPressed)
+    if selectedElement and selectedElement:IsA("TextButton") then
+        local text = ScriptField.Text:match("^%s*(.-)%s*$")
+        buttonScripts[selectedElement] = text
+    end
+end)
+
+-- UICorner Toggle Logic
+UICornerToggle.MouseButton1Click:Connect(function()
+    if selectedElement then
+        local uiCorner = selectedElement:FindFirstChildOfClass("UICorner")
+        if uiCorner then
+            uiCorner:Destroy()
+            UICornerToggle.Text = "UI Corner: Off"
+            UICornerToggle.BackgroundColor3 = colors.SecondaryAccent
+        else
+            uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 8)
+            uiCorner.Parent = selectedElement
+            UICornerToggle.Text = "UI Corner: On"
+            UICornerToggle.BackgroundColor3 = colors.PrimaryAccent
+            CornerRadius.Text = "0,8"
+        end
+        updatePropertyVisibility(selectedElement)
+    end
+end)
+
+CornerRadius.FocusLost:Connect(function(enterPressed)
+    if selectedElement then
+        local uiCorner = selectedElement:FindFirstChildOfClass("UICorner")
+        if uiCorner then
+            local textInput = CornerRadius.Text or ""
+            local parts = {}
+            for part in string.gmatch(textInput, "[^,]+") do
+                table.insert(parts, tonumber(part))
+            end
+            local scale = parts[1]
+            local offset = parts[2]
+
+            if scale ~= nil and offset ~= nil then
+                scale = math.clamp(scale, 0, 1)
+                offset = math.clamp(math.floor(offset), 0, 1000)
+                uiCorner.CornerRadius = UDim.new(scale, offset)
+            else
+                warn("Invalid CornerRadius input: " .. textInput .. ". Expected 'scale,offset' format.")
+                CornerRadius.Text = string.format("%.2f", uiCorner.CornerRadius.Scale) .. "," .. tostring(uiCorner.CornerRadius.Offset)
+            end
+        end
+    end
+end)
+
+-- UIStroke Toggle Logic
+UIStrokeToggle.MouseButton1Click:Connect(function()
+    if selectedElement then
+        local uiStroke = selectedElement:FindFirstChildOfClass("UIStroke")
+        if uiStroke then
+            uiStroke:Destroy()
+            UIStrokeToggle.Text = "UI Stroke: Off"
+            UIStrokeToggle.BackgroundColor3 = colors.SecondaryAccent
+        else
+            uiStroke = Instance.new("UIStroke")
+            uiStroke.Thickness = 2
+            uiStroke.Color = colors.PrimaryAccent
+            uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            uiStroke.Parent = selectedElement
+            UIStrokeToggle.Text = "UI Stroke: On"
+            UIStrokeToggle.BackgroundColor3 = colors.PrimaryAccent
+            StrokeThickness.Text = "2"
+            StrokeColorR.Text = "0"
+            StrokeColorG.Text = "122"
+            StrokeColorB.Text = "204"
+        end
+        updatePropertyVisibility(selectedElement)
+    end
+end)
+
+StrokeThickness.FocusLost:Connect(function(enterPressed)
+    if selectedElement then
+        local uiStroke = selectedElement:FindFirstChildOfClass("UIStroke")
+        if uiStroke then
+            if not safeSetNumberProperty(uiStroke, "Thickness", StrokeThickness.Text, true, 1, 10) then
+                StrokeThickness.Text = tostring(uiStroke.Thickness)
+            end
+        end
+    end
+end)
+
+local function updateStrokeColor()
+    if selectedElement then
+        local uiStroke = selectedElement:FindFirstChildOfClass("UIStroke")
+        if uiStroke then
+            if not safeSetColorProperty(uiStroke, "Color", StrokeColorR.Text, StrokeColorG.Text, StrokeColorB.Text) then
+                StrokeColorR.Text = tostring(math.floor(uiStroke.Color.R * 255))
+                StrokeColorG.Text = tostring(math.floor(uiStroke.Color.G * 255))
+                StrokeColorB.Text = tostring(math.floor(uiStroke.Color.B * 255))
+            end
+        end
+    end
+end
+StrokeColorR.FocusLost:Connect(updateStrokeColor)
+StrokeColorG.FocusLost:Connect(updateStrokeColor)
+StrokeColorB.FocusLost:Connect(updateStrokeColor)
+
+DeleteElementButton.MouseButton1Click:Connect(function()
+    if selectedElement then
+        local index = table.find(createdElements, selectedElement)
+        if index then
+            local elementToDelete = selectedElement
+            selectElement(nil)
+
+            table.remove(createdElements, index)
+            buttonBindings[elementToDelete] = nil
+            buttonScripts[elementToDelete] = nil
+
+            for parentFrame, children in pairs(frameChildren) do
+                for i = #children, 1, -1 do
+                    if children[i] == elementToDelete then
+                        table.remove(children, i)
+                        break
+                    end
+                end
+            end
+            frameChildren[elementToDelete] = nil
+
+            elementToDelete:Destroy()
+            Properties.Visible = false
+        end
+    end
+end)
+
+
+-- ====== LOCAL VISUAL ENHANCEMENT FOR GUI EDITING ======
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Function to remove tools from character
+local function removeToolsFrom(char)
+    for _, tool in pairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            tool:Destroy()
+        end
+    end
+end
+
+-- Set up listener to clean tools on character load or respawn
+local function setupCharacterMonitor()
+    local char = player.Character or player.CharacterAdded:Wait()
+    removeToolsFrom(char)
+    player.CharacterAdded:Connect(removeToolsFrom)
+end
+
+setupCharacterMonitor()
+
+
+-- Move camera above the sky and freeze it
+camera.CameraType = Enum.CameraType.Scriptable
+camera.CFrame = CFrame.new(Vector3.new(0, 500, 0), Vector3.new(0, 500, -10))
+
+-- Play background music
+local music = Instance.new("Sound")
+music.SoundId = "rbxassetid://73860488272709" -- Replace with your preferred audio ID
+music.Looped = true
+music.Volume = 0.3
+music.Parent = SoundService
+music:Play()
+
+-- Set night effect locally
+Lighting.TimeOfDay = "22:00:00"
+Lighting.Brightness = 1
+Lighting.OutdoorAmbient = Color3.fromRGB(20, 20, 40)
+
+
+
+-- === SLIDE TOGGLE FOR TOOLBOX ===
+local toolboxToggle = Instance.new("TextButton")
+toolboxToggle.Size = UDim2.new(0, 25, 0, 40)
+toolboxToggle.Position = UDim2.new(0, 0, 0.5, -20)
+toolboxToggle.AnchorPoint = Vector2.new(0, 0.5)
+toolboxToggle.Text = "»"
+toolboxToggle.TextSize = 20
+toolboxToggle.BackgroundColor3 = colors.SecondaryAccent
+toolboxToggle.TextColor3 = colors.TextPrimary
+toolboxToggle.BorderSizePixel = 0
+toolboxToggle.Parent = ScreenGui
+addStroke(toolboxToggle, 1, colors.SecondaryAccent)
+local corner1 = Instance.new("UICorner"); corner1.CornerRadius = UDim.new(0, 6); corner1.Parent = toolboxToggle
+
+local isToolboxVisible = true
+toolboxToggle.MouseButton1Click:Connect(function()
+    isToolboxVisible = not isToolboxVisible
+    local targetPos = isToolboxVisible and UDim2.new(0, 10, 0, 10) or UDim2.new(0, -Toolbox.AbsoluteSize.X, 0, 10)
+    toolboxToggle.Text = isToolboxVisible and "»" or "«"
+    TweenService:Create(Toolbox, TweenInfo.new(0.25), {Position = targetPos}):Play()
+end)
+
+-- === SLIDE TOGGLE FOR PROPERTIES ===
+local propertiesToggle = Instance.new("TextButton")
+propertiesToggle.Size = UDim2.new(0, 25, 0, 40)
+propertiesToggle.Position = UDim2.new(1, -25, 0.5, -20)
+propertiesToggle.AnchorPoint = Vector2.new(1, 0.5)
+propertiesToggle.Text = "«"
+propertiesToggle.TextSize = 20
+propertiesToggle.BackgroundColor3 = colors.SecondaryAccent
+propertiesToggle.TextColor3 = colors.TextPrimary
+propertiesToggle.BorderSizePixel = 0
+propertiesToggle.Parent = ScreenGui
+addStroke(propertiesToggle, 1, colors.SecondaryAccent)
+local corner2 = Instance.new("UICorner"); corner2.CornerRadius = UDim.new(0, 6); corner2.Parent = propertiesToggle
+
+local isPropertiesVisible = false
+propertiesToggle.MouseButton1Click:Connect(function()
+    isPropertiesVisible = not isPropertiesVisible
+    local targetPos = isPropertiesVisible and UDim2.new(1, -10, 0, 10) or UDim2.new(1, Properties.AbsoluteSize.X, 0, 10)
+    propertiesToggle.Text = isPropertiesVisible and "«" or "»"
+    TweenService:Create(Properties, TweenInfo.new(0.25), {Position = targetPos}):Play()
+end)
+
+
+
+-- Prevent any tool from being added again after startup
+
+local function removeIfTool(child)
+    if child:IsA("Tool") then
+        child:Destroy()
+    end
+end
+
+local function monitorContainers()
+    local function setup(char, backpack)
+        for _, obj in pairs(char:GetChildren()) do removeIfTool(obj) end
+        for _, obj in pairs(backpack:GetChildren()) do removeIfTool(obj) end
+
+        char.ChildAdded:Connect(removeIfTool)
+        backpack.ChildAdded:Connect(removeIfTool)
+    end
+
+    local function onCharacter(char)
+        local backpack = player:WaitForChild("Backpack")
+        setup(char, backpack)
+    end
+
+    player.CharacterAdded:Connect(onCharacter)
+
+    if player.Character and player:FindFirstChild("Backpack") then
+        setup(player.Character, player.Backpack)
+    end
+end
+
+monitorContainers()
+
+
+
+-- === WELCOME SCREEN ===
+local welcomeScreen = Instance.new("Frame")
+welcomeScreen.Size = UDim2.new(1, 0, 1, 0)
+welcomeScreen.Position = UDim2.new(0, 0, 0, 0)
+welcomeScreen.BackgroundColor3 = colors.Background
+welcomeScreen.ZIndex = 999
+welcomeScreen.Visible = true
+welcomeScreen.Parent = ScreenGui
+
+local welcomeText = Instance.new("TextLabel")
+welcomeText.Size = UDim2.new(1, -40, 0, 60)
+welcomeText.Position = UDim2.new(0.5, 0, 0.35, 0)
+welcomeText.AnchorPoint = Vector2.new(0.5, 0)
+welcomeText.Text = "WELCOME TO KULTHX EDITOR"
+welcomeText.TextColor3 = colors.TextPrimary
+welcomeText.TextSize = 28
+welcomeText.Font = fonts.Title
+welcomeText.BackgroundTransparency = 1
+welcomeText.ZIndex = 1000
+welcomeText.Visible = true
+welcomeText.Parent = welcomeScreen
+
+local subText = Instance.new("TextLabel")
+subText.Size = UDim2.new(1, -40, 0, 40)
+subText.Position = UDim2.new(0.5, 0, 0.45, 0)
+subText.AnchorPoint = Vector2.new(0.5, 0)
+subText.Text = "A powerful and modern in-game GUI creation experience"
+subText.TextColor3 = colors.TextSecondary
+subText.TextSize = 18
+subText.Font = fonts.Body
+subText.BackgroundTransparency = 1
+subText.ZIndex = 1000
+subText.Visible = true
+subText.Parent = welcomeScreen
+
+local startButton = Instance.new("TextButton")
+startButton.Size = UDim2.new(0, 160, 0, 40)
+startButton.Position = UDim2.new(0.5, 0, 0.58, 0)
+startButton.AnchorPoint = Vector2.new(0.5, 0)
+startButton.Text = "START"
+startButton.TextSize = 20
+startButton.Font = fonts.Button
+startButton.BackgroundColor3 = colors.PrimaryAccent
+startButton.TextColor3 = colors.TextPrimary
+startButton.ZIndex = 1000
+startButton.Visible = true
+startButton.BorderSizePixel = 0
+startButton.Parent = welcomeScreen
+local corner = Instance.new("UICorner"); corner.CornerRadius = UDim.new(0, 6); corner.Parent = startButton
+addStroke(startButton, 1, colors.PrimaryAccentHover)
+
+startButton.MouseButton1Click:Connect(function()
+    TweenService:Create(welcomeScreen, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    for _, child in pairs(welcomeScreen:GetChildren()) do
+        if child:IsA("GuiObject") then
+            TweenService:Create(child, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        end
+    end
+    task.delay(0.6, function()
+        welcomeScreen:Destroy()
+    end)
+end)
+
+
+DraggableToggle.MouseButton1Click:Connect(function()
+    if selectedElement then
+        local isDraggable = not draggableElements[selectedElement]
+        draggableElements[selectedElement] = isDraggable
+        DraggableToggle.Text = "Draggable: " .. (isDraggable and "On" or "Off")
+        DraggableToggle.BackgroundColor3 = isDraggable and colors.PrimaryAccent or colors.SecondaryAccent
+    end
+end)
